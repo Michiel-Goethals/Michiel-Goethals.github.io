@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Omerta Strava Challenge</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root{--orange:#ff8c42;--bg:#f4f4f4;--text:#222;--card:#fff}
+    body.dark{--bg:#111;--text:#eee;--card:#1b1b1b}
+    body{margin:0;font-family:Arial, 'Roboto', sans-serif;background:var(--bg);color:var(--text);padding:20px;transition:background .2s,color .2s}
+    h1,h2,h3{font-family:Roboto, Arial, sans-serif;color:var(--orange);margin:0}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .button{background:var(--orange);color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+    .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06);transition:box-shadow .18s}
+    .stats-container{display:flex;gap:14px;margin-bottom:14px}
+    .stat-card{flex:1;padding:14px;border-radius:12px;text-align:center;background:var(--card);box-shadow:0 6px 14px rgba(0,0,0,.06)}
+
+    /* highlight style for points */
+    .points-highlight{background:linear-gradient(135deg, rgba(255,140,66,0.12), rgba(255,140,66,0.04));border:1px solid rgba(255,140,66,0.14);box-shadow:0 8px 30px rgba(255,140,66,0.08)}
+
+    .filters{display:flex;gap:10px;margin:12px 0 18px}
+    select{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:transparent}
+
+    .map-card{padding:12px}
+    #map{height:420px;border-radius:12px;overflow:hidden;position:relative;z-index:1}
+    .leaflet-container{z-index:1}
+
+    .small-graphs{display:flex;gap:16px;margin-top:14px}
+    .small-graphs .card{flex:1;padding:12px}
+    canvas{width:100%;height:140px;display:block}
+
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:none;align-items:center;justify-content:center;z-index:99999}
+    .modal-content{background:var(--card);color:var(--text);width:82%;max-height:80vh;overflow:auto;border-radius:12px;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+    .close-btn{float:right;background:transparent;border:0;font-size:18px;cursor:pointer}
+
+    @media (max-width:800px){.stats-container{flex-direction:column}.small-graphs{flex-direction:column}}
+
+    /* small icons (SVG) */
+    .icon {width:18px;height:18px;vertical-align:middle;margin-right:8px;opacity:0.9}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Omerta Strava Challenge</h1>
+    <div>
+      <button class="button" id="openActivities">Alle Activiteiten</button>
+      <button class="button" id="toggleDark" style="margin-left:8px">Toggle Dark</button>
+    </div>
+  </div>
+
+  <div class="stats-container">
+    <div class="stat-card card"><h3>Kilometers</h3><div id="totalKm" style="font-size:20px;font-weight:700;margin-top:8px">0 km</div></div>
+    <div class="stat-card card"><h3>Totale Tijd</h3><div id="totalTime" style="font-size:20px;font-weight:700;margin-top:8px">0h 0m 0s</div></div>
+    <div class="stat-card card points-highlight"><h3 style="display:flex;align-items:center;justify-content:center"><svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15 9H22L17 14L19 21L12 17L5 21L7 14L2 9H9L12 2Z" fill="currentColor"/></svg> Punten</h3><div id="totalPoints" style="font-size:26px;font-weight:800;margin-top:8px;color:var(--orange)">0</div></div>
+  </div>
+
+  <div class="card map-card">
+    <h2>Naar waar kunnen we gaan</h2>
+    <div id="map"></div>
+  </div>
+
+  <div  class="filters card" style="margin-top:12px" hidden>
+    <label hidden for="filterType">Type</label>
+    <select  hidden id="filterType"><option value="all">Alle types</option></select>
+    <label hidden for="filterUser">Deelnemer</label>
+    <select hidden id="filterUser"><option value="all">Alle deelnemers</option></select>
+  </div>
+
+  <div class="small-graphs">
+    <div class="card"><h3>Punten per Type</h3><canvas id="activityChart"></canvas></div>
+    <div class="card"><h3>Kilometer per Type</h3><canvas id="kmChart"></canvas></div>
+  </div>
+
+  <div class="modal" id="modal"><div class="modal-content" id="modalContent"><button class="close-btn" id="closeModal">✕</button><h2>Alle Activiteiten</h2><div id="modalList"></div></div></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+  <script>
+    // --- DATA ---
+   const ALL_ACTIVITIES = [
+  {
+    "Deelnemer": "Ruben",
+    "Activiteitstype": "Fietsen",
+    "Tijd": "00:45:15",
+    "Kilometer": 15,
+    "Punten": 1
+  },
+  {
+    "Deelnemer": "Jana",
+    "Activiteitstype": "Lopen",
+    "Tijd": "02:58:36",
+    "Kilometer": 10,
+    "Punten": 2
+  },
+  {
+    "Deelnemer": "Serge",
+    "Activiteitstype": "Wandeln",
+    "Tijd": "05:20:56",
+    "Kilometer": 20,
+    "Punten": 5
+  },
+  {
+    "Deelnemer": "Serge",
+    "Activiteitstype": "Wandeln",
+    "Tijd": "05:20:56",
+    "Kilometer": 20,
+    "Punten": 5
+  },
+  {
+    "Deelnemer": "Jana",
+    "Activiteitstype": "Lopen",
+    "Tijd": "02:58:36",
+    "Kilometer": 10,
+    "Punten": 2
+  },
+  {
+    "Deelnemer": "Michiel",
+    "Activiteitstype": "Fietsen",
+    "Tijd": "01:02:00",
+    "Kilometer": 25,
+    "Punten": 1
+  }
+];
+
+    // expose globally (used by circle logic)
+    window.ALL_ACTIVITIES = ALL_ACTIVITIES;
+
+    // --- HELPERS ---
+    function parseTimeToSeconds(t){
+      if(!t) return 0;
+      const p = String(t).split(':').map(Number);
+      return (p[0]||0)*3600 + (p[1]||0)*60 + (p[2]||0);
+    }
+    function formatHMS(sec){const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);const s=sec%60;return `${h}h ${m}m ${s}s`}
+
+    // --- UI elements ---
+    const filterType = document.getElementById('filterType');
+    const filterUser = document.getElementById('filterUser');
+    const modal = document.getElementById('modal');
+    const modalList = document.getElementById('modalList');
+
+    // populate filters dynamically
+    const types = Array.from(new Set(ALL_ACTIVITIES.map(d=>d.Activiteitstype)));
+    const users = Array.from(new Set(ALL_ACTIVITIES.map(d=>d.Deelnemer)));
+    types.forEach(t=>{const o=document.createElement('option');o.value=t;o.innerText=t;filterType.appendChild(o)});
+    users.forEach(u=>{const o=document.createElement('option');o.value=u;o.innerText=u;filterUser.appendChild(o)});
+
+    // charts
+    let activityChart=null, kmChart=null;
+    function buildCharts(dataset){
+      const pointsByType = {};
+      const kmByType = {};
+      dataset.forEach(d=>{pointsByType[d.Activiteitstype]=(pointsByType[d.Activiteitstype]||0)+d.Punten;kmByType[d.Activiteitstype]=(kmByType[d.Activiteitstype]||0)+d.Kilometer});
+
+      const activityCtx = document.getElementById('activityChart').getContext('2d');
+      const kmCtx = document.getElementById('kmChart').getContext('2d');
+
+      if(activityChart) activityChart.destroy();
+      if(kmChart) kmChart.destroy();
+
+      activityChart = new Chart(activityCtx, {type:'bar',data:{labels:Object.keys(pointsByType),datasets:[{label:'Punten',data:Object.values(pointsByType),backgroundColor:'rgba(255,140,66,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+
+      kmChart = new Chart(kmCtx, {type:'bar',data:{labels:Object.keys(kmByType),datasets:[{label:'Kilometer',data:Object.values(kmByType),backgroundColor:'rgba(255,166,77,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+    }
+
+    // stats (based on filtered dataset)
+    function updateStats(dataset){
+      const totalP = dataset.reduce((s,x)=>s + (x.Punten||0), 0);
+      const totalKm = dataset.reduce((s,x)=>s + (x.Kilometer||0), 0);
+      const totalSec = dataset.reduce((s,x)=>s + parseTimeToSeconds(x.Tijd||0), 0);
+      document.getElementById('totalPoints').innerText = totalP;
+      document.getElementById('totalKm').innerText = totalKm + ' km';
+      document.getElementById('totalTime').innerText = formatHMS(totalSec);
+    }
+
+    // --- MAP SETUP ---
+    const brussels = [50.8503,4.3517];
+    const map = L.map('map',{zoomControl:true}).setView(brussels,10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap, © CartoDB'}).addTo(map);
+
+    // circle that ALWAYS uses the FULL dataset (ALL_ACTIVITIES)
+    let circleLayer = null;
+    function drawCircleForDataset(){
+      const full = window.ALL_ACTIVITIES || [];
+      const totalP = full.reduce((s,x)=>s + (x.Punten||0), 0);
+      const meters = Math.max(50, totalP * 1000);
+      if(circleLayer) circleLayer.remove();
+      try{map.invalidateSize()}catch(e){}
+      circleLayer = L.circle(brussels,{radius:meters,color:'rgba(255,120,40,1)',fillColor:'rgba(255,120,40,0.18)',fillOpacity:0.55,weight:5}).addTo(map);
+      setTimeout(()=>{try{map.invalidateSize()}catch(e){};map.fitBounds(circleLayer.getBounds(),{padding:[40,40]})},120);
+    }
+
+    // --- FILTERING ---
+    function getFiltered(){
+      const type = filterType.value;
+      const user = filterUser.value;
+      return ALL_ACTIVITIES.filter(d=> (type==='all'||d.Activiteitstype===type) && (user==='all'||d.Deelnemer===user));
+    }
+    function updateFilters(){
+      const filtered = getFiltered();
+      updateStats(filtered);
+      buildCharts(filtered);
+      renderModalList(filtered);
+      // IMPORTANT: do NOT update circle here; circle must reflect ALL_ACTIVITIES
+    }
+
+    // --- MODAL ---
+    function openModal(){modal.style.display='flex';renderModalList(ALL_ACTIVITIES)}
+    function closeModal(){modal.style.display='none'}
+    function renderModalList(list){
+      const el = modalList; if(!list) list = ALL_ACTIVITIES;
+      if(list.length===0) el.innerHTML = '<p>Geen activiteiten gevonden</p>';
+      else el.innerHTML = list.map(d=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,.06)"><strong>${d.Deelnemer}</strong> — ${d.Activiteitstype} — ${d.Kilometer} km — ${d.Tijd} — ${d.Punten} pt</div>`).join('');
+    }
+
+    // --- EVENTS ---
+    document.getElementById('openActivities').addEventListener('click', openModal);
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('toggleDark').addEventListener('click', ()=>document.body.classList.toggle('dark'));
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+    // --- INITIALIZE ---
+    updateStats(ALL_ACTIVITIES);
+    buildCharts(ALL_ACTIVITIES);
+    drawCircleForDataset();
+    renderModalList(ALL_ACTIVITIES);
+
+    // ensure map draws correctly after layout
+    setTimeout(()=>{try{map.invalidateSize();}catch(e){}} , 200);
+  </script>
+</body>
+</html>
