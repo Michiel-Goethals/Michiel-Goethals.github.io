@@ -46,6 +46,7 @@
     <h1>Omerta Strava Challenge</h1>
     <div>
       <button class="button" id="openActivities">Alle Activiteiten</button>
+      <button class="button" id="regels">Regels</button>
       <button class="button" id="toggleDark" style="margin-left:8px">Toggle Dark</button>
     </div>
   </div>
@@ -74,6 +75,7 @@
   </div>
 
   <div class="modal" id="modal"><div class="modal-content" id="modalContent"><button class="close-btn" id="closeModal">✕</button><h2>Alle Activiteiten</h2><div id="modalList"></div></div></div>
+  <div class="modal" id="regelModal"><div class="modal-content" id="regelModalContent"><button class="close-btn" id="closeRegelModal">✕</button><h2>Regels</h2><div id="regelModalList"></div></div></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -106,6 +108,8 @@ const ALL_ACTIVITIES = [
     const filterUser = document.getElementById('filterUser');
     const modal = document.getElementById('modal');
     const modalList = document.getElementById('modalList');
+    const regelModal = document.getElementById('regelModal');
+    const regelModalList = document.getElementById('regelModalList');
 
     // populate filters dynamically
     const types = Array.from(new Set(ALL_ACTIVITIES.map(d=>d.Activiteitstype)));
@@ -181,11 +185,22 @@ const ALL_ACTIVITIES = [
       else el.innerHTML = list.map(d=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,.06)"><strong>${d.Deelnemer}</strong> — ${d.Activiteitstype} — ${d.Kilometer} km — ${d.Tijd} — ${d.Punten} pt</div>`).join('');
     }
 
+    // --- MODAL RULES ---
+    function openRegelModal(){regelModal.style.display='flex';renderRegelModalList()}
+    function closeRegelModal(){regelModal.style.display='none'}
+    function renderRegelModalList(){
+       const el = regelModalList;
+       el.innerHTML = "Periode: 1 december tot 31 maartVoorwaarden:<br>Woonwerkverkeer telt niet mee voor deze challenge<br>Maximum 1 activiteit per dag telt voor deze challenge<br><br>Elke activiteit voor deze challenge duurt minstens 30 minuten.<br>Volledige transparantie/geen verborgen activiteiten<br><br><br>Puntentelling:<br>1 punt = activiteit van minstens 30 minuten tot 1u59 activiteit registratie<br>2 punten = 2u – 2u59 activiteit registratie<br>3 punten = 3u – 3u59 activiteit registratie<br>4 punten = 4u tot 4u59 activiteit registratie<br>5 punten = 5u tot 5u59 activiteit registratie<br>Enz…<br><br>Resultaat<br>Na de challenge periode tellen we het aantal punten van alle deelnemers op.<br>Aantal punten = aantal kilometers.<br>Aantal kilometers = trekken een cirkel radius en kiezen een bestemming op basis van deze afstand om met alle deelnemers naartoe te gaan.";
+    }
+
     // --- EVENTS ---
     document.getElementById('openActivities').addEventListener('click', openModal);
-    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('closeModal').addEventListener('click', closeModal);    
+    document.getElementById('regels').addEventListener('click', openRegelModal);
+    document.getElementById('closeRegelModal').addEventListener('click', closeRegelModal); 
     document.getElementById('toggleDark').addEventListener('click', ()=>document.body.classList.toggle('dark'));
     window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeRegelModal(); });
 
     // --- INITIALIZE ---
     updateStats(ALL_ACTIVITIES);
