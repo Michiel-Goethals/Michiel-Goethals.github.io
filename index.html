@@ -190,7 +190,7 @@ const ALL_ACTIVITIES = [
     function renderModalList(list){
       const el = modalList; if(!list) list = ALL_ACTIVITIES;
       if(list.length===0) el.innerHTML = '<p>Geen activiteiten gevonden</p>';
-      else el.innerHTML = list.map(d=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,.06)"><strong>${d.Deelnemer}</strong> — ${d.Activiteitstype} — ${d.Kilometer} km — ${d.Tijd} — ${d.Punten} pt</div>`).join('');
+      else el.innerHTML = list.map(d=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,.06)"><strong>${d.Deelnemer}</strong> — ${d.Activiteitstype} — ${d.Datum} — ${d.Kilometer} km — ${d.Tijd} — ${d.Punten} pt</div>`).join('');
     }
 
     // --- MODAL RULES ---
