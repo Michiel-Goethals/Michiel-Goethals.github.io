@@ -14,11 +14,34 @@
     .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
     .button{background:var(--orange);color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600}
     .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06);transition:box-shadow .18s}
-    .stats-container{display:flex;gap:14px;margin-bottom:14px}
-    .stat-card{flex:1;padding:14px;border-radius:12px;text-align:center;background:var(--card);box-shadow:0 6px 14px rgba(0,0,0,.06)}
+    .stats-container{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;} /* Added flex-wrap for better responsiveness with the new card */
+    .stat-card{flex:1;min-width:180px;padding:14px;border-radius:12px;text-align:center;background:var(--card);box-shadow:0 6px 14px rgba(0,0,0,.06)}
 
     /* highlight style for points */
     .points-highlight{background:linear-gradient(135deg, rgba(255,140,66,0.12), rgba(255,140,66,0.04));border:1px solid rgba(255,140,66,0.14);box-shadow:0 8px 30px rgba(255,140,66,0.08)}
+    .countdown-card {
+        background: var(--orange);
+        color: #fff;
+        padding: 14px;
+        border-radius: 12px;
+        text-align: center;
+        flex: 1;
+        min-width: 250px;
+        box-shadow: 0 6px 14px rgba(0,0,0,.15);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .countdown-card h3 {
+        color: #fff; /* White text for the heading */
+        margin-bottom: 4px;
+    }
+    .countdown-timer {
+        font-size: 20px;
+        font-weight: 700;
+        margin-top: 8px;
+    }
 
     .filters{display:flex;gap:10px;margin:12px 0 18px}
     select{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:transparent}
@@ -54,9 +77,14 @@
   <div class="stats-container">
     <div class="stat-card card"><h3>Kilometers Gesport</h3><div id="totalKm" style="font-size:20px;font-weight:700;margin-top:8px">0 km</div></div>
     <div class="stat-card card"><h3>Totale Tijd Gesport</h3><div id="totalTime" style="font-size:20px;font-weight:700;margin-top:8px">0h 0m 0s</div></div>
-        <div class="stat-card card"><h3>Aantal Activiteiten</h3><div id="totalActivities" style="font-size:20px;font-weight:700;margin-top:8px">0</div></div>
+    <div class="stat-card card"><h3>Aantal Activiteiten</h3><div id="totalActivities" style="font-size:20px;font-weight:700;margin-top:8px">0</div></div>
     <div class="stat-card card points-highlight"><h3 style="display:flex;align-items:center;justify-content:center"><svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15 9H22L17 14L19 21L12 17L5 21L7 14L2 9H9L12 2Z" fill="currentColor"/></svg> Punten</h3><div id="totalPoints" style="font-size:26px;font-weight:800;margin-top:8px;color:var(--orange)">0</div></div>
-  </div>
+    
+    <div class="countdown-card">
+      <h3>Einde Challenge</h3>
+      <div id="countdownTimer" class="countdown-timer">0d 0h 0m 0s</div>
+    </div>
+    </div>
 
   <div class="card map-card">
     <h2>Naar waar kunnen we gaan</h2>
@@ -127,6 +155,27 @@ const ALL_ACTIVITIES = [
       return (p[0]||0)*3600 + (p[1]||0)*60 + (p[2]||0);
     }
     function formatHMS(sec){const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);const s=sec%60;return `${h}h ${m}m ${s}s`}
+    
+    // NEW: Countdown Logic
+    const END_DATE = new Date('2026-03-31T23:59:59').getTime();
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = END_DATE - now;
+      const countdownEl = document.getElementById('countdownTimer');
+
+      if (distance < 0) {
+        countdownEl.innerHTML = "Challenge is afgelopen!";
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      countdownEl.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+    // END NEW
 
     // --- UI elements ---
     const filterType = document.getElementById('filterType');
@@ -233,6 +282,11 @@ const ALL_ACTIVITIES = [
     buildCharts(ALL_ACTIVITIES);
     drawCircleForDataset();
     renderModalList(ALL_ACTIVITIES);
+
+    // NEW: Start Countdown and set interval
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    // END NEW
 
     // ensure map draws correctly after layout
     setTimeout(()=>{try{map.invalidateSize();}catch(e){}} , 200);
