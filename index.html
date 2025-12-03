@@ -50,15 +50,16 @@
     #map{height:420px;border-radius:12px;overflow:hidden;position:relative;z-index:1}
     .leaflet-container{z-index:1}
 
-    .small-graphs{display:flex;gap:16px;margin-top:14px}
-    .small-graphs .card{flex:1;padding:12px}
-    canvas{width:100%;height:140px;display:block}
+    /* Updated layout for charts inside modal */
+    .modal-graphs{display:flex;flex-direction:column;gap:16px;margin-top:14px}
+    .modal-graphs .card{padding:12px;margin-bottom:16px;}
+    canvas{width:100%;max-height:300px;display:block}
 
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:none;align-items:center;justify-content:center;z-index:99999}
     .modal-content{background:var(--card);color:var(--text);width:82%;max-height:80vh;overflow:auto;border-radius:12px;padding:18px;box-shadow:0 18px 40px rgba(0,0,0,.25)}
     .close-btn{float:right;background:transparent;border:0;font-size:18px;cursor:pointer}
 
-    @media (max-width:800px){.stats-container{flex-direction:column}.small-graphs{flex-direction:column}}
+    @media (max-width:800px){.stats-container{flex-direction:column}}
 
     /* small icons (SVG) */
     .icon {width:18px;height:18px;vertical-align:middle;margin-right:8px;opacity:0.9}
@@ -69,7 +70,7 @@
     <h1>Omerta Strava Challenge</h1>
     <div>
       <button class="button" id="openActivities">Alle Activiteiten</button>
-      <button class="button" id="regels">Regels</button>
+      <button class="button" id="openGraphs">Grafieken</button> <button class="button" id="regels">Regels</button>
       <button class="button" id="toggleDark" style="margin-left:8px">Toggle Dark</button>
     </div>
   </div>
@@ -84,7 +85,7 @@
       <h3>Einde Challenge</h3>
       <div id="countdownTimer" class="countdown-timer">0d 0h 0m 0s</div>
     </div>
-    </div>
+  </div>
 
   <div class="card map-card">
     <h2>Naar waar kunnen we gaan</h2>
@@ -98,14 +99,19 @@
     <select hidden id="filterUser"><option value="all">Alle deelnemers</option></select>
   </div>
 
-  <div class="small-graphs">
-    <div class="card"><h3>Punten per Type</h3><canvas id="activityChart"></canvas></div>
-    <div class="card"><h3>Kilometer per Type</h3><canvas id="kmChart"></canvas></div>
-  </div>
-
   <div class="modal" id="modal"><div class="modal-content" id="modalContent"><button class="close-btn" id="closeModal">✕</button><h2>Alle Activiteiten</h2><div id="modalList"></div></div></div>
   <div class="modal" id="regelModal"><div class="modal-content" id="regelModalContent"><button class="close-btn" id="closeRegelModal">✕</button><h2>Regels</h2><div id="regelModalList"></div></div></div>
-
+  
+  <div class="modal" id="graphModal">
+    <div class="modal-content" id="graphModalContent">
+      <button class="close-btn" id="closeGraphModal">✕</button>
+      <h2>Overzicht Grafieken</h2>
+      <div class="modal-graphs">
+        <div class="card"><h3>Punten per Type</h3><canvas id="activityChart"></canvas></div>
+        <div class="card"><h3>Kilometer per Type</h3><canvas id="kmChart"></canvas></div>
+        <div class="card"><h3>Tijd per Type (uren)</h3><canvas id="timeChart"></canvas></div> </div>
+    </div>
+  </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <script>
@@ -155,8 +161,8 @@ const ALL_ACTIVITIES = [
       return (p[0]||0)*3600 + (p[1]||0)*60 + (p[2]||0);
     }
     function formatHMS(sec){const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);const s=sec%60;return `${h}h ${m}m ${s}s`}
-    
-    // NEW: Countdown Logic
+
+    // Countdown Logic
     const END_DATE = new Date('2026-03-31T23:59:59').getTime();
     function updateCountdown() {
       const now = new Date().getTime();
@@ -175,7 +181,6 @@ const ALL_ACTIVITIES = [
 
       countdownEl.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
-    // END NEW
 
     // --- UI elements ---
     const filterType = document.getElementById('filterType');
@@ -184,6 +189,7 @@ const ALL_ACTIVITIES = [
     const modalList = document.getElementById('modalList');
     const regelModal = document.getElementById('regelModal');
     const regelModalList = document.getElementById('regelModalList');
+    const graphModal = document.getElementById('graphModal'); // NEW
 
     // populate filters dynamically
     const types = Array.from(new Set(ALL_ACTIVITIES.map(d=>d.Activiteitstype)));
@@ -192,21 +198,38 @@ const ALL_ACTIVITIES = [
     users.forEach(u=>{const o=document.createElement('option');o.value=u;o.innerText=u;filterUser.appendChild(o)});
 
     // charts
-    let activityChart=null, kmChart=null;
+    let activityChart=null, kmChart=null, timeChart=null; // NEW: timeChart
     function buildCharts(dataset){
       const pointsByType = {};
       const kmByType = {};
-      dataset.forEach(d=>{pointsByType[d.Activiteitstype]=(pointsByType[d.Activiteitstype]||0)+d.Punten;kmByType[d.Activiteitstype]=(kmByType[d.Activiteitstype]||0)+d.Kilometer});
+      const timeByTypeSec = {}; // NEW: time data (in seconds)
+
+      dataset.forEach(d=>{
+        pointsByType[d.Activiteitstype]=(pointsByType[d.Activiteitstype]||0)+d.Punten;
+        kmByType[d.Activiteitstype]=(kmByType[d.Activiteitstype]||0)+d.Kilometer;
+        timeByTypeSec[d.Activiteitstype]=(timeByTypeSec[d.Activiteitstype]||0)+parseTimeToSeconds(d.Tijd); // Accumulate time in seconds
+      });
+
+      // Convert time from seconds to hours for display
+      const timeByTypeHours = Object.keys(timeByTypeSec).reduce((acc, key) => {
+          acc[key] = timeByTypeSec[key] / 3600; 
+          return acc;
+      }, {});
 
       const activityCtx = document.getElementById('activityChart').getContext('2d');
       const kmCtx = document.getElementById('kmChart').getContext('2d');
+      const timeCtx = document.getElementById('timeChart').getContext('2d'); // NEW
 
       if(activityChart) activityChart.destroy();
       if(kmChart) kmChart.destroy();
+      if(timeChart) timeChart.destroy(); // NEW
 
       activityChart = new Chart(activityCtx, {type:'bar',data:{labels:Object.keys(pointsByType),datasets:[{label:'Punten',data:Object.values(pointsByType),backgroundColor:'rgba(255,140,66,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
 
-      kmChart = new Chart(kmCtx, {type:'bar',data:{labels:Object.keys(kmByType),datasets:[{label:'Kilometer',data:Object.values(kmByType),backgroundColor:'rgba(255,166,77,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+      kmChart = new Chart(kmCtx, {type:'bar',data:{labels:Object.keys(kmByType),datasets:[{label:'Kilometer',data:Object.values(kmByType),backgroundColor:'rgba(255,166,77,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true, title: {display: true, text: 'Kilometer'}}}}});
+
+      // NEW Time Chart configuration
+      timeChart = new Chart(timeCtx, {type:'bar',data:{labels:Object.keys(timeByTypeHours),datasets:[{label:'Tijd (uur)',data:Object.values(timeByTypeHours),backgroundColor:'rgba(100,180,255,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true, title: {display: true, text: 'Uren'}}}}});
     }
 
     // stats (based on filtered dataset)
@@ -251,7 +274,7 @@ const ALL_ACTIVITIES = [
       // IMPORTANT: do NOT update circle here; circle must reflect ALL_ACTIVITIES
     }
 
-    // --- MODAL ---
+    // --- MODAL ACTIVITIES ---
     function openModal(){modal.style.display='flex';renderModalList(ALL_ACTIVITIES)}
     function closeModal(){modal.style.display='none'}
     function renderModalList(list){
@@ -259,6 +282,10 @@ const ALL_ACTIVITIES = [
       if(list.length===0) el.innerHTML = '<p>Geen activiteiten gevonden</p>';
       else el.innerHTML = list.map(d=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,.06)"><strong>${d.Deelnemer}</strong> — ${d.Activiteitstype} — ${d.Datum} — ${d.Kilometer} km — ${d.Tijd} — ${d.Punten} pt</div>`).join('');
     }
+
+    // --- MODAL GRAPHS ---
+    function openGraphModal(){graphModal.style.display='flex'; buildCharts(ALL_ACTIVITIES); } // Builds charts on open
+    function closeGraphModal(){graphModal.style.display='none'}
 
     // --- MODAL RULES ---
     function openRegelModal(){regelModal.style.display='flex';renderRegelModalList()}
@@ -273,20 +300,27 @@ const ALL_ACTIVITIES = [
     document.getElementById('closeModal').addEventListener('click', closeModal);    
     document.getElementById('regels').addEventListener('click', openRegelModal);
     document.getElementById('closeRegelModal').addEventListener('click', closeRegelModal); 
+    document.getElementById('openGraphs').addEventListener('click', openGraphModal); // NEW
+    document.getElementById('closeGraphModal').addEventListener('click', closeGraphModal); // NEW
     document.getElementById('toggleDark').addEventListener('click', ()=>document.body.classList.toggle('dark'));
-    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeRegelModal(); });
+    
+    // Close modals with Escape key
+    window.addEventListener('keydown', e=>{ 
+        if(e.key==='Escape') {
+            closeModal();
+            closeRegelModal();
+            closeGraphModal(); // NEW
+        }
+    });
 
     // --- INITIALIZE ---
     updateStats(ALL_ACTIVITIES);
-    buildCharts(ALL_ACTIVITIES);
+    // Charts are now built when the modal is opened, but we need to run it once to initialize the chart variables properly (or defer buildChart call) - let's defer.
+    // buildCharts(ALL_ACTIVITIES); // Removed initial call
     drawCircleForDataset();
     renderModalList(ALL_ACTIVITIES);
-
-    // NEW: Start Countdown and set interval
     updateCountdown();
     setInterval(updateCountdown, 1000);
-    // END NEW
 
     // ensure map draws correctly after layout
     setTimeout(()=>{try{map.invalidateSize();}catch(e){}} , 200);
