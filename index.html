@@ -163,7 +163,7 @@ const ALL_ACTIVITIES = [
     // stats (based on filtered dataset)
     function updateStats(dataset){
       const totalP = dataset.reduce((s,x)=>s + (x.Punten||0), 0);
-      const totalKm = dataset.reduce((s,x)=>s + (x.Kilometer||0), 0);
+      const totalKm = dataset.reduce((s,x)=>s + Math.round(x.Kilometer||0), 0);
       const totalSec = dataset.reduce((s,x)=>s + parseTimeToSeconds(x.Tijd||0), 0);
       document.getElementById('totalPoints').innerText = totalP;
       document.getElementById('totalKm').innerText = totalKm + ' km';
@@ -216,7 +216,7 @@ const ALL_ACTIVITIES = [
     function closeRegelModal(){regelModal.style.display='none'}
     function renderRegelModalList(){
        const el = regelModalList;
-       el.innerHTML = "Periode: 1 december tot 31 maartVoorwaarden:<br>Woonwerkverkeer telt niet mee voor deze challenge<br>Maximum 1 activiteit per dag telt voor deze challenge<br><br>Elke activiteit voor deze challenge duurt minstens 30 minuten.<br>Volledige transparantie/geen verborgen activiteiten<br><br><br>Puntentelling:<br>1 punt = activiteit van minstens 30 minuten tot 1u59 activiteit registratie<br>2 punten = 2u – 2u59 activiteit registratie<br>3 punten = 3u – 3u59 activiteit registratie<br>4 punten = 4u tot 4u59 activiteit registratie<br>5 punten = 5u tot 5u59 activiteit registratie<br>Enz…<br><br>Resultaat<br>Na de challenge periode tellen we het aantal punten van alle deelnemers op.<br>Aantal punten = aantal kilometers.<br>Aantal kilometers = trekken een cirkel radius en kiezen een bestemming op basis van deze afstand om met alle deelnemers naartoe te gaan.";
+       el.innerHTML = "Periode: 1 december tot 31 maart<br>Voorwaarden:<br>Woonwerkverkeer telt niet mee voor deze challenge<br>Maximum 1 activiteit per dag telt voor deze challenge<br><br>Elke activiteit voor deze challenge duurt minstens 30 minuten.<br>Volledige transparantie/geen verborgen activiteiten<br><br><br>Puntentelling:<br>1 punt = activiteit van minstens 30 minuten tot 1u59 activiteit registratie<br>2 punten = 2u – 2u59 activiteit registratie<br>3 punten = 3u – 3u59 activiteit registratie<br>4 punten = 4u tot 4u59 activiteit registratie<br>5 punten = 5u tot 5u59 activiteit registratie<br>Enz…<br><br>Resultaat<br>Na de challenge periode tellen we het aantal punten van alle deelnemers op.<br>Aantal punten = aantal kilometers.<br>Aantal kilometers = trekken een cirkel radius en kiezen een bestemming op basis van deze afstand om met alle deelnemers naartoe te gaan.";
     }
 
     // --- EVENTS ---
