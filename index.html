@@ -118,6 +118,51 @@
 
     /* small icons (SVG) */
     .icon {width:18px;height:18px;vertical-align:middle;margin-right:8px;opacity:0.9}
+
+    <style>
+/* ... existing styles ... */
+
+    /* NEW: Progress Bar Styles */
+    .progress-container {
+        margin-top: 14px;
+        background-color: var(--card); /* Match card background */
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .progress-bar-bg {
+        width: 100%;
+        background-color: var(--bg); /* Light background for the track */
+        border-radius: 8px;
+        height: 16px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background-color: var(--orange); 
+        transition: width 0.6s ease-out;
+        border-radius: 8px 0 0 8px;
+    }
+    .progress-bar-text {
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 10px;
+        color: var(--text);
+    }
+    .progress-bar-text span {
+        color: var(--orange);
+    }
+
+/* ... existing styles ... */
+</style>
   </style>
 </head>
 <body>
@@ -150,6 +195,12 @@
 
   <div id="suggestionsCard" class="card" style="margin-top:14px;">
     <h2>Suggesties Binnen Bereik</h2>
+        <div id="progressBarContainer" class="progress-container">
+        </div>
+  </div>
+    <div id="suggestionsList" class="suggestions-list">
+    </div>
+
     <div id="suggestionsList" class="suggestions-list">
         </div>
   </div>
@@ -216,7 +267,7 @@ const ALL_ACTIVITIES = [
 ];
 
 const SUGGESTED_CITIES = [
-    { name: "Rue D'Aarschot (4)", distance: 3 },
+    { name: "Rue D'Aarschot (5)", distance: 5 },
     { name: "Brugge (97)", distance: 97 },
     { name: "Bouillon (124)", distance: 124 },
     { name: "Mullerthal (182)", distance: 182 },
@@ -367,6 +418,79 @@ const SUGGESTED_CITIES = [
         } else {
              suggestionsList.innerHTML = html;
         }
+    }
+
+    // ... existing script content ...
+
+    // --- SUGGESTIONS LOGIC ---
+    const progressBarContainer = document.getElementById('progressBarContainer'); // NEW
+
+    function updateSuggestions(totalPoints) {
+        const radiusKm = totalPoints; // As per rules: Aantal punten = aantal kilometers.
+        
+        let html = '';
+        // The cities that are currently reachable (distance <= radiusKm)
+        const relevantCities = SUGGESTED_CITIES.filter(city => city.distance <= radiusKm).sort((a, b) => a.distance - b.distance);
+        // The cities that are currently NOT reachable (distance > radiusKm)
+        const furtherCities = SUGGESTED_CITIES.filter(city => city.distance > radiusKm).sort((a, b) => a.distance - b.distance);
+
+        if (relevantCities.length > 0) {
+            html += relevantCities.map(city => `<span class="suggestion-item" style="background: rgba(255, 140, 66, 0.2); font-weight: 700;">${city.name}</span>`).join('');
+        }
+        
+        // Show cities that are further away as grayed out goals
+        if (furtherCities.length > 0) {
+             html += furtherCities.map(city => `<span class="suggestion-item" style="background: rgba(0,0,0,0.05); opacity: 0.6; color: var(--text);">${city.name}</span>`).join('');
+        }
+
+        if (html === '') {
+             suggestionsList.innerHTML = '<span class="suggestion-item">Helaas, de afstand is nog te klein om een stad te bereiken. Blijf sporten!</span>';
+        } else {
+             suggestionsList.innerHTML = html;
+        }
+
+        // --- NEW: Progress Bar Logic ---
+        if (furtherCities.length > 0) {
+            const nextCity = furtherCities[0];
+            const nextDistance = nextCity.distance;
+            
+            // The distance that needs to be covered to reach the next city
+            const totalToCover = nextDistance - (relevantCities.length > 0 ? relevantCities[relevantCities.length - 1].distance : 0);
+            
+            // The distance covered since the last city (or from 0)
+            const coveredSinceLast = totalPoints - (relevantCities.length > 0 ? relevantCities[relevantCities.length - 1].distance : 0);
+
+            // Special case for the very first city (from 0 km to first city distance)
+            const progressFraction = (relevantCities.length === 0) 
+                ? (totalPoints / nextDistance) 
+                : (coveredSinceLast / totalToCover);
+
+            const progressPercentage = Math.min(100, Math.floor(progressFraction * 100));
+
+            const remainingDistance = nextDistance - totalPoints;
+            const remainingText = Math.max(0, remainingDistance).toFixed(0); 
+
+            progressBarContainer.innerHTML = `
+                <div class="progress-labels">
+                    <span style="color: var(--orange);">Huidige Afstand: ${totalPoints} punten</span>
+                    <span>${nextCity.name}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${progressPercentage}%;"></div>
+                </div>
+                <div class="progress-bar-text">
+                    Nog <span>${remainingText} punten</span> tot het volgende doel!
+                </div>
+            `;
+        } else {
+            // All cities reached
+            progressBarContainer.innerHTML = `
+                <div class="progress-bar-text" style="color: green; text-align: center;">
+                    Gefeliciteerd! Alle voorgestelde bestemmingen zijn binnen bereik!
+                </div>
+            `;
+        }
+        // --- END: Progress Bar Logic ---
     }
 
 
