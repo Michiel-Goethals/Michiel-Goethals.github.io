@@ -4,37 +4,61 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Omerta Strava Challenge</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    :root{--orange:#ff8c42;--bg:#f4f4f4;--text:#222;--card:#fff}
+    :root{--orange:#ff8c42;--bg:#f4f4f4;--text:#222;--card:#fff;--light-orange:#ffa366;}
     body.dark{--bg:#111;--text:#eee;--card:#1b1b1b}
     body{margin:0;font-family:Arial, 'Roboto', sans-serif;background:var(--bg);color:var(--text);padding:20px;transition:background .2s,color .2s}
-    h1,h2,h3{font-family:Roboto, Arial, sans-serif;color:var(--orange);margin:0}
+    h2,h3{font-family:Roboto, Arial, sans-serif;color:var(--orange);margin:0}
+
+    /* TITLE STYLE */
+    h1 {
+        font-family: 'Roboto', sans-serif;
+        font-size: 32px;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        color: var(--text); 
+        border-bottom: 4px solid var(--orange); 
+        padding-bottom: 6px;
+        margin-bottom: 14px; 
+        display: inline-block;
+        transition: color 0.2s;
+    }
     .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
     .button{background:var(--orange);color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600}
     .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06);transition:box-shadow .18s}
-    .stats-container{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;} /* Added flex-wrap for better responsiveness with the new card */
+    .stats-container{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;} 
     .stat-card{flex:1;min-width:180px;padding:14px;border-radius:12px;text-align:center;background:var(--card);box-shadow:0 6px 14px rgba(0,0,0,.06)}
 
     /* highlight style for points */
     .points-highlight{background:linear-gradient(135deg, rgba(255,140,66,0.12), rgba(255,140,66,0.04));border:1px solid rgba(255,140,66,0.14);box-shadow:0 8px 30px rgba(255,140,66,0.08)}
+    
+    /* Timer Card Styles (Default state) */
     .countdown-card {
-        background: var(--orange);
-        color: #fff;
+        background: var(--card); 
+        color: var(--text); 
+        border: 3px solid var(--orange); 
         padding: 14px;
         border-radius: 12px;
         text-align: center;
         flex: 1;
         min-width: 250px;
-        box-shadow: 0 6px 14px rgba(0,0,0,.15);
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        transition: all 0.2s ease-in-out; /* Smooth transition for non-animated changes */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Subtle default shadow */
     }
+    
+    /* NEW: Pulsating Animation ONLY on hover */
+    .countdown-card:hover {
+        animation: pulse-smooth 1s ease-in-out infinite alternate; 
+    }
+
     .countdown-card h3 {
-        color: #fff; /* White text for the heading */
+        color: var(--orange); 
         margin-bottom: 4px;
     }
     .countdown-timer {
@@ -43,12 +67,43 @@
         margin-top: 8px;
     }
 
+    /* Smoother Pulsating Animation */
+    @keyframes pulse-smooth {
+      0% { 
+        transform: scale(1.0); 
+        box-shadow: 0 0 0px 0px rgba(255, 140, 66, 0.2); 
+      }
+      100% { 
+        transform: scale(1.01); 
+        box-shadow: 0 0 16px 4px rgba(255, 140, 66, 0.8); 
+      }
+    }
+    /* END TIMER STYLE */
+
+
     .filters{display:flex;gap:10px;margin:12px 0 18px}
     select{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:transparent}
 
     .map-card{padding:12px}
     #map{height:420px;border-radius:12px;overflow:hidden;position:relative;z-index:1}
     .leaflet-container{z-index:1}
+    
+    /* Suggestions Card Style */
+    .suggestions-list {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .suggestion-item {
+        background: rgba(255, 140, 66, 0.1);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        border: 1px solid rgba(255, 140, 66, 0.3);
+    }
+
 
     /* Updated layout for charts inside modal */
     .modal-graphs{display:flex;flex-direction:column;gap:16px;margin-top:14px}
@@ -70,7 +125,8 @@
     <h1>Omerta Strava Challenge</h1>
     <div>
       <button class="button" id="openActivities">Alle Activiteiten</button>
-      <button class="button" id="openGraphs">Grafieken</button> <button class="button" id="regels">Regels</button>
+      <button class="button" id="openGraphs">Grafieken</button> 
+      <button class="button" id="regels">Regels</button>
       <button class="button" id="toggleDark" style="margin-left:8px">Toggle Dark</button>
     </div>
   </div>
@@ -92,6 +148,11 @@
     <div id="map"></div>
   </div>
 
+  <div id="suggestionsCard" class="card" style="margin-top:14px;">
+    <h2>Suggesties Binnen Bereik</h2>
+    <div id="suggestionsList" class="suggestions-list">
+        </div>
+  </div>
   <div  class="filters card" style="margin-top:12px" hidden>
     <label hidden for="filterType">Type</label>
     <select  hidden id="filterType"><option value="all">Alle types</option></select>
@@ -109,9 +170,12 @@
       <div class="modal-graphs">
         <div class="card"><h3>Punten per Type</h3><canvas id="activityChart"></canvas></div>
         <div class="card"><h3>Kilometer per Type</h3><canvas id="kmChart"></canvas></div>
-        <div class="card"><h3>Tijd per Type (uren)</h3><canvas id="timeChart"></canvas></div> </div>
+        <div class="card"><h3>Tijd per Type (uren)</h3><canvas id="timeChart"></canvas></div> 
+      </div>
     </div>
   </div>
+
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <script>
@@ -149,6 +213,17 @@ const ALL_ACTIVITIES = [
     "Kilometer": 0,
     "Punten": 1
   }
+];
+
+const SUGGESTED_CITIES = [
+    { name: "Brussel", distance: 0 },
+    { name: "Gent", distance: 56 },
+    { name: "Antwerpen", distance: 48 },
+    { name: "Brugge", distance: 97 },
+    { name: "Lille", distance: 90 },
+    { name: "Keulen", distance: 198 },
+    { name: "Amsterdam", distance: 208 },
+    { name: "Parijs", distance: 300 }
 ];
 
     // expose globally (used by circle logic)
@@ -189,7 +264,8 @@ const ALL_ACTIVITIES = [
     const modalList = document.getElementById('modalList');
     const regelModal = document.getElementById('regelModal');
     const regelModalList = document.getElementById('regelModalList');
-    const graphModal = document.getElementById('graphModal'); // NEW
+    const graphModal = document.getElementById('graphModal'); 
+    const suggestionsList = document.getElementById('suggestionsList'); // NEW
 
     // populate filters dynamically
     const types = Array.from(new Set(ALL_ACTIVITIES.map(d=>d.Activiteitstype)));
@@ -198,16 +274,16 @@ const ALL_ACTIVITIES = [
     users.forEach(u=>{const o=document.createElement('option');o.value=u;o.innerText=u;filterUser.appendChild(o)});
 
     // charts
-    let activityChart=null, kmChart=null, timeChart=null; // NEW: timeChart
+    let activityChart=null, kmChart=null, timeChart=null; 
     function buildCharts(dataset){
       const pointsByType = {};
       const kmByType = {};
-      const timeByTypeSec = {}; // NEW: time data (in seconds)
+      const timeByTypeSec = {}; 
 
       dataset.forEach(d=>{
         pointsByType[d.Activiteitstype]=(pointsByType[d.Activiteitstype]||0)+d.Punten;
         kmByType[d.Activiteitstype]=(kmByType[d.Activiteitstype]||0)+d.Kilometer;
-        timeByTypeSec[d.Activiteitstype]=(timeByTypeSec[d.Activiteitstype]||0)+parseTimeToSeconds(d.Tijd); // Accumulate time in seconds
+        timeByTypeSec[d.Activiteitstype]=(timeByTypeSec[d.Activiteitstype]||0)+parseTimeToSeconds(d.Tijd); 
       });
 
       // Convert time from seconds to hours for display
@@ -218,18 +294,18 @@ const ALL_ACTIVITIES = [
 
       const activityCtx = document.getElementById('activityChart').getContext('2d');
       const kmCtx = document.getElementById('kmChart').getContext('2d');
-      const timeCtx = document.getElementById('timeChart').getContext('2d'); // NEW
+      const timeCtx = document.getElementById('timeChart').getContext('2d'); 
 
       if(activityChart) activityChart.destroy();
       if(kmChart) kmChart.destroy();
-      if(timeChart) timeChart.destroy(); // NEW
+      if(timeChart) timeChart.destroy(); 
 
       activityChart = new Chart(activityCtx, {type:'bar',data:{labels:Object.keys(pointsByType),datasets:[{label:'Punten',data:Object.values(pointsByType),backgroundColor:'rgba(255,140,66,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
 
       kmChart = new Chart(kmCtx, {type:'bar',data:{labels:Object.keys(kmByType),datasets:[{label:'Kilometer',data:Object.values(kmByType),backgroundColor:'rgba(255,166,77,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true, title: {display: true, text: 'Kilometer'}}}}});
 
-      // NEW Time Chart configuration
-      timeChart = new Chart(timeCtx, {type:'bar',data:{labels:Object.keys(timeByTypeHours),datasets:[{label:'Tijd (uur)',data:Object.values(timeByTypeHours),backgroundColor:'rgba(100,180,255,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true, title: {display: true, text: 'Uren'}}}}});
+      // Time Chart configuration (using main orange color)
+      timeChart = new Chart(timeCtx, {type:'bar',data:{labels:Object.keys(timeByTypeHours),datasets:[{label:'Tijd (uur)',data:Object.values(timeByTypeHours),backgroundColor:'rgba(255,140,66,0.95)',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true, title: {display: true, text: 'Uren'}}}}});
     }
 
     // stats (based on filtered dataset)
@@ -241,6 +317,9 @@ const ALL_ACTIVITIES = [
       document.getElementById('totalKm').innerText = totalKm + ' km';
       document.getElementById('totalTime').innerText = formatHMS(totalSec);
       document.getElementById('totalActivities').innerText = dataset.length;
+      
+      // Update suggestions when stats change
+      updateSuggestions(totalP);
     }
 
     // --- MAP SETUP ---
@@ -259,6 +338,31 @@ const ALL_ACTIVITIES = [
       circleLayer = L.circle(brussels,{radius:meters,color:'rgba(255,120,40,1)',fillColor:'rgba(255,120,40,0.18)',fillOpacity:0.55,weight:5}).addTo(map);
       setTimeout(()=>{try{map.invalidateSize()}catch(e){};map.fitBounds(circleLayer.getBounds(),{padding:[40,40]})},120);
     }
+
+    // --- SUGGESTIONS LOGIC ---
+    function updateSuggestions(totalPoints) {
+        const radiusKm = totalPoints; // As per rules: Aantal punten = aantal kilometers.
+        
+        let html = '';
+        const relevantCities = SUGGESTED_CITIES.filter(city => city.distance <= radiusKm).sort((a, b) => a.distance - b.distance);
+        const furtherCities = SUGGESTED_CITIES.filter(city => city.distance > radiusKm).sort((a, b) => a.distance - b.distance);
+
+        if (relevantCities.length > 0) {
+            html += relevantCities.map(city => `<span class="suggestion-item" style="background: rgba(255, 140, 66, 0.2); font-weight: 700;">${city.name}</span>`).join('');
+        }
+        
+        // Show cities that are further away as grayed out goals
+        if (furtherCities.length > 0) {
+             html += furtherCities.map(city => `<span class="suggestion-item" style="background: rgba(0,0,0,0.05); opacity: 0.6; color: var(--text);">${city.name}</span>`).join('');
+        }
+
+        if (html === '') {
+             suggestionsList.innerHTML = '<span class="suggestion-item">Helaas, de afstand is nog te klein om een stad te bereiken. Blijf sporten!</span>';
+        } else {
+             suggestionsList.innerHTML = html;
+        }
+    }
+
 
     // --- FILTERING ---
     function getFiltered(){
@@ -284,7 +388,7 @@ const ALL_ACTIVITIES = [
     }
 
     // --- MODAL GRAPHS ---
-    function openGraphModal(){graphModal.style.display='flex'; buildCharts(ALL_ACTIVITIES); } // Builds charts on open
+    function openGraphModal(){graphModal.style.display='flex'; buildCharts(ALL_ACTIVITIES); } 
     function closeGraphModal(){graphModal.style.display='none'}
 
     // --- MODAL RULES ---
@@ -300,8 +404,8 @@ const ALL_ACTIVITIES = [
     document.getElementById('closeModal').addEventListener('click', closeModal);    
     document.getElementById('regels').addEventListener('click', openRegelModal);
     document.getElementById('closeRegelModal').addEventListener('click', closeRegelModal); 
-    document.getElementById('openGraphs').addEventListener('click', openGraphModal); // NEW
-    document.getElementById('closeGraphModal').addEventListener('click', closeGraphModal); // NEW
+    document.getElementById('openGraphs').addEventListener('click', openGraphModal); 
+    document.getElementById('closeGraphModal').addEventListener('click', closeGraphModal); 
     document.getElementById('toggleDark').addEventListener('click', ()=>document.body.classList.toggle('dark'));
     
     // Close modals with Escape key
@@ -309,14 +413,12 @@ const ALL_ACTIVITIES = [
         if(e.key==='Escape') {
             closeModal();
             closeRegelModal();
-            closeGraphModal(); // NEW
+            closeGraphModal(); 
         }
     });
 
     // --- INITIALIZE ---
     updateStats(ALL_ACTIVITIES);
-    // Charts are now built when the modal is opened, but we need to run it once to initialize the chart variables properly (or defer buildChart call) - let's defer.
-    // buildCharts(ALL_ACTIVITIES); // Removed initial call
     drawCircleForDataset();
     renderModalList(ALL_ACTIVITIES);
     updateCountdown();
