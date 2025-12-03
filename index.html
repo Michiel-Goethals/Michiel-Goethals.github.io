@@ -267,19 +267,50 @@ const ALL_ACTIVITIES = [
 ];
 
 const SUGGESTED_CITIES = [
+    { name: "Gele Koten (1)", distance: 1 },
     { name: "Rue D'Aarschot (5)", distance: 5 },
+    { name: "Aalst (24)", distance: 24 },
+    { name: "Gent (50)", distance: 50 },
+    { name: "Sint-Truiden (57)", distance: 57 },
+    { name: "Hasselt (69)", distance: 69 },
+    { name: "Dinant (78)", distance: 78 },
+    { name: "Hoge Kempen (93)", distance: 93 },
     { name: "Brugge (97)", distance: 97 },
+    { name: "Oostende (108)", distance: 108 },
+    { name: "Rotterdam (118)", distance: 118 },
     { name: "Bouillon (124)", distance: 124 },
+    { name: "Butchenbach (139)", distance: 139 },
+    { name: "Aarlen (167)", distance: 167 },
     { name: "Mullerthal (182)", distance: 182 },
     { name: "Wissant (192)", distance: 192 },
     { name: "Keulen (198)", distance: 198 },
     { name: "Amsterdam (208)", distance: 208 },
+    { name: "Texel (245)", distance: 245 },
+    { name: "Londen (320)", distance: 320 },
     { name: "Straatsburg (345)", distance: 345 },
+    { name: "Dijon (395)", distance: 395 },
+    { name: "Interlaken (530)", distance: 530 },
+    { name: "Chamonix (580)", distance: 580 },
+    { name: "Munchen (602)", distance: 602 },
+    { name: "Bolzano (705)", distance: 705 },
     { name: "Praag (715)", distance: 715 },
+    { name: "Edinburgh (754)", distance: 754 },
+    { name: "Kopenhagen (763)", distance: 763 },
     { name: "Dublin (780)", distance: 780 },
     { name: "Ljubljana (915)", distance: 915 },
     { name: "Andorra (945)", distance: 945 },
+    { name: "Corsica (1040)", distance: 1040 },
+    { name: "Bergen (1060)", distance: 1060 },
+    { name: "Split (1220)", distance: 1220 },
+    { name: "Mallorca (1260)", distance: 1260 },
+    { name: "Sarajevo (1310)", distance: 1310 },
+    { name: "Amalfi (1385)", distance: 1385 },
     { name: "Palermo (1580)", distance: 1580 },
+    { name: "Tallin (1600)", distance: 1600 },
+    { name: "Lissabon (1715)", distance: 1715 },
+    { name: "Abisko (2095)", distance: 2095 },
+    { name: "Marrakesh (2370)", distance: 2370 },
+    { name: "Gran Canaria (3050)", distance: 3050 },
     { name: "Thailand (9250)", distance: 9250 }
 ];
 
@@ -472,7 +503,7 @@ const SUGGESTED_CITIES = [
 
             progressBarContainer.innerHTML = `
                 <div class="progress-labels">
-                    <span style="color: var(--orange);">Huidige Afstand: ${totalPoints} punten</span>
+                    <span style="color: var(--orange);">${totalPoints} punten</span>
                     <span>${nextCity.name}</span>
                 </div>
                 <div class="progress-bar-bg">
