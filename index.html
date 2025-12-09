@@ -391,7 +391,7 @@ const SUGGESTED_CITIES = [
     function formatHMS(sec){const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);const s=sec%60;return `${h}h ${m}m ${s}s`}
 
     // Countdown Logic
-    const END_DATE = new Date('2026-04-1T00:59:59').getTime();
+    const END_DATE = new Date('2026-04-01T00:59:59').getTime();
     function updateCountdown() {
       const now = new Date().getTime();
       const distance = END_DATE - now;
